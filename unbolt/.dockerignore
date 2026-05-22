@@ -1,0 +1,20 @@
+# Git and IDE metadata
+.git
+.gitignore
+.dockerignore
+.vscode
+.idea
+.DS_Store
+
+# Environments and Sensitive configs
+.env
+
+# Python caching
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local data (prevent baking local password files into the image)
+data/
+unbolt/data/

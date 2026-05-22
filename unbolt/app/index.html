@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNBOLT - Bulk File Decryption Gateway</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(17, 24, 39, 0.7);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent-glow: rgba(59, 130, 246, 0.15);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --primary-btn: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            --primary-btn-hover: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+            --success-color: #10b981;
+            --error-color: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(29, 78, 216, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(17, 24, 39, 1) 0px, transparent 50%),
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 680px;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .banner-container {
+            width: 100%;
+            margin-bottom: 2rem;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .banner-img {
+            width: 100%;
+            display: block;
+            object-fit: cover;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Drag and Drop Zone */
+        .drop-zone {
+            border: 2px dashed rgba(59, 130, 246, 0.3);
+            background: rgba(30, 41, 59, 0.3);
+            border-radius: 16px;
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.05);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .drop-zone input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .drop-zone-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+            display: inline-block;
+            transition: transform 0.3s ease;
+        }
+
+        .drop-zone:hover .drop-zone-icon {
+            transform: translateY(-4px);
+        }
+
+        .drop-zone-text {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        .drop-zone-text span {
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .file-list {
+            margin-top: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .file-badge {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-badge-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 80%;
+        }
+
+        .file-badge-size {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+
+        /* Input text */
+        input[type="text"] {
+            background: rgba(17, 24, 39, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 0.85rem 1rem;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .checkbox-group {
+            flex-direction: row;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            cursor: pointer;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+            accent-color: #3b82f6;
+            width: 16px;
+            height: 16px;
+        }
+
+        .checkbox-label {
+            margin-bottom: 0;
+            font-size: 0.85rem;
+            text-transform: none;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* Submit Button */
+        button[type="submit"] {
+            background: var(--primary-btn);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 1rem;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(29, 78, 216, 0.3);
+            margin-top: 0.5rem;
+        }
+
+        button[type="submit"]:hover:not(:disabled) {
+            background: var(--primary-btn-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        button[type="submit"]:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button[type="submit"]:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Statuses */
+        #status {
+            margin-top: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .status-header {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.85rem 1rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            border: 1px solid var(--border-color);
+            animation: slideIn 0.3s ease forwards;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-item.success {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+        }
+
+        .status-item.error {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+
+        .status-item-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 80%;
+        }
+
+        .badge-status {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+        }
+
+        .success .badge-status {
+            background: rgba(16, 185, 129, 0.2);
+        }
+
+        .error .badge-status {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="banner-container">
+            <img src="/banner.png" alt="UNBOLT The File Unlocking Gateway" class="banner-img">
+        </div>
+        
+        <form id="decryptForm">
+            <div class="form-group">
+                <label>Select files to decrypt</label>
+                <div class="drop-zone" id="dropZone">
+                    <span class="drop-zone-icon">🔓</span>
+                    <p class="drop-zone-text">Drag & drop files here or <span>browse</span></p>
+                    <input type="file" id="files" multiple required>
+                </div>
+                <div class="file-list" id="fileList"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Manual Fallback Password (Optional)</label>
+                <input type="text" id="password" placeholder="Enter password to attempt first...">
+            </div>
+
+            <div class="form-group checkbox-group">
+                <input type="checkbox" id="persist" checked>
+                <label for="persist" class="checkbox-label">Persist new password to user dictionary</label>
+            </div>
+
+            <button type="submit" id="submitBtn">Decrypt Files</button>
+        </form>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('files');
+        const dropZone = document.getElementById('dropZone');
+        const fileList = document.getElementById('fileList');
+
+        // Drag and drop handlers
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            fileInput.files = files;
+            updateFileList();
+        });
+
+        fileInput.addEventListener('change', updateFileList);
+
+        function updateFileList() {
+            fileList.innerHTML = '';
+            Array.from(fileInput.files).forEach(file => {
+                const sizeKB = (file.size / 1024).toFixed(1);
+                const item = document.createElement('div');
+                item.className = 'file-badge';
+                item.innerHTML = `
+                    <span class="file-badge-name">${file.name}</span>
+                    <span class="file-badge-size">${sizeKB} KB</span>
+                `;
+                fileList.appendChild(item);
+            });
+        }
+
+        document.getElementById('decryptForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const passwordInput = document.getElementById('password');
+            const password = passwordInput.value;
+            const persist = document.getElementById('persist').checked;
+            
+            // Clear the password input instantly
+            passwordInput.value = '';
+            
+            const statusDiv = document.getElementById('status');
+            const submitBtn = document.getElementById('submitBtn');
+            const files = fileInput.files;
+            
+            if (files.length === 0) return;
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span>Processing...';
+            statusDiv.innerHTML = '<div class="status-header">Processing Queue</div>';
+            
+            const promises = Array.from(files).map(async (file) => {
+                const formData = new FormData();
+                formData.append('file', file);
+                if (password) {
+                    formData.append('password', password);
+                    formData.append('persist', persist ? 'true' : 'false');
+                }
+                
+                // Create a temporary element in status
+                const statusItem = document.createElement('div');
+                statusItem.className = 'status-item';
+                statusItem.style.background = 'rgba(255, 255, 255, 0.02)';
+                statusItem.innerHTML = `
+                    <div class="status-item-info">
+                        <span>⏳</span>
+                        <strong>${file.name}</strong>
+                    </div>
+                    <span style="color: var(--text-secondary); font-size: 0.8rem;">Decrypting...</span>
+                `;
+                statusDiv.appendChild(statusItem);
+                
+                try {
+                    const response = await fetch('/decrypt', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        
+                        let filename = `decrypted_${file.name}`;
+                        const disposition = response.headers.get('Content-Disposition');
+                        if (disposition && disposition.indexOf('filename=') !== -1) {
+                            const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                            const matches = filenameRegex.exec(disposition);
+                            if (matches != null && matches[1]) { 
+                                filename = matches[1].replace(/['"]/g, '');
+                            }
+                        }
+                        
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        
+                        setTimeout(() => {
+                            window.URL.revokeObjectURL(url);
+                            document.body.removeChild(a);
+                        }, 100);
+                        
+                        statusItem.className = 'status-item success';
+                        statusItem.innerHTML = `
+                            <div class="status-item-info">
+                                <span>✅</span>
+                                <strong>${file.name}</strong>
+                            </div>
+                            <span class="badge-status">Success</span>
+                        `;
+                    } else {
+                        let errMsg = response.statusText;
+                        try {
+                            const errJson = await response.json();
+                            if (errJson.detail) errMsg = errJson.detail;
+                        } catch (e) {}
+                        
+                        statusItem.className = 'status-item error';
+                        statusItem.innerHTML = `
+                            <div class="status-item-info">
+                                <span>❌</span>
+                                <strong>${file.name}</strong>
+                            </div>
+                            <span class="badge-status" title="${errMsg}">Failed</span>
+                        `;
+                    }
+                } catch (error) {
+                    statusItem.className = 'status-item error';
+                    statusItem.innerHTML = `
+                        <div class="status-item-info">
+                            <span>❌</span>
+                            <strong>${file.name}</strong>
+                        </div>
+                        <span class="badge-status" title="${error.message}">Error</span>
+                    `;
+                }
+            });
+            
+            await Promise.all(promises);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Decrypt Files';
+        });
+    </script>
+</body>
+</html>

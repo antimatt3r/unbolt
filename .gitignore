@@ -1,0 +1,16 @@
+# Environments and Sensitive configs
+.env
+
+# Local data directories
+unbolt/data/
+data/
+
+# Python caching
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE and OS files
+.DS_Store
+.vscode/
+.idea/

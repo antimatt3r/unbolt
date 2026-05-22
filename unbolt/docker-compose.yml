@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  unbolt:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: unbolt:latest
+    ports:
+      - "${HOST_PORT:-8000}:8000"
+    volumes:
+      - "${HOST_DATA_PATH:-./data}:/data"
+    restart: unless-stopped
