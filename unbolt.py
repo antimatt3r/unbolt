@@ -27,7 +27,7 @@ def load_env():
     return env_vars
 
 # Helper to encode multipart/form-data using standard library
-def encode_multipart(filename, file_bytes, password=None):
+def encode_multipart(filename, file_bytes, password=None, persist=True):
     boundary = f"----UnboltBoundary{uuid.uuid4().hex}"
     CRLF = b"\r\n"
     parts = []
@@ -46,6 +46,12 @@ def encode_multipart(filename, file_bytes, password=None):
         parts.append(b'')
         parts.append(password.encode('utf-8'))
 
+    # Persist part
+    parts.append(f"--{boundary}".encode('utf-8'))
+    parts.append(b'Content-Disposition: form-data; name="persist"')
+    parts.append(b'')
+    parts.append(b"true" if persist else b"false")
+
     # End boundary
     parts.append(f"--{boundary}--".encode('utf-8'))
     parts.append(b'')
@@ -54,7 +60,7 @@ def encode_multipart(filename, file_bytes, password=None):
     content_type = f"multipart/form-data; boundary={boundary}"
     return body, content_type
 
-def decrypt_file(file_path, server_url, password, force):
+def decrypt_file(file_path, server_url, password, force, persist=True):
     path = Path(file_path).resolve()
     if not path.exists():
         return file_path, False, f"File does not exist"
@@ -72,7 +78,7 @@ def decrypt_file(file_path, server_url, password, force):
 
     # Prepare multipart request
     try:
-        body, content_type = encode_multipart(path.name, file_bytes, password)
+        body, content_type = encode_multipart(path.name, file_bytes, password, persist)
         url = f"{server_url.rstrip('/')}/decrypt"
         req = urllib.request.Request(url, data=body, headers={"Content-Type": content_type})
         
@@ -109,8 +115,10 @@ def main():
     parser.add_argument("-p", "--password", help="Optional manual fallback password to try first")
     parser.add_argument("-f", "--force", action="store_true", help="Force overwrite of existing output files")
     parser.add_argument("-u", "--url", help="Server API URL (defaults to UNBOLT_URL in .env, or http://localhost:8000)")
+    parser.add_argument("--no-persist", action="store_true", help="Do not save successfully decrypted password to the server dictionary")
     
     args = parser.parse_args()
+    persist = not args.no_persist
 
     # Determine URL
     env_vars = load_env()
@@ -140,7 +148,7 @@ def main():
     results = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = {
-            executor.submit(decrypt_file, f, server_url, args.password, args.force): f 
+            executor.submit(decrypt_file, f, server_url, args.password, args.force, persist): f 
             for f in args.files
         }
         for future in concurrent.futures.as_completed(futures):
